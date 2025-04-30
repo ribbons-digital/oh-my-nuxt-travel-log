@@ -15,10 +15,7 @@ export default withNuxt(
         semi: true,
         quotes: "double",
       },
-<<<<<<< HEAD
       ignores: [".pnpm-store/**"],
-=======
->>>>>>> 0ceb869 (add linting configs)
     },
     {
       rules: {
