@@ -13,6 +13,6 @@ export const locationLog = sqliteTable("locationLog", {
   updatedAt: int().notNull().$default(() => Date.now()).$onUpdate(() => Date.now()),
   startedAt: int().notNull(),
   endedAt: int().notNull(),
-  userId: int().notNull().references(() => user.id),
+  userId: text("user_id").notNull().references(() => user.id),
   locationId: int().notNull().references(() => location.id),
 });

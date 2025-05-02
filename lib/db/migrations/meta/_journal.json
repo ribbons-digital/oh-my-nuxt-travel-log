@@ -15,6 +15,20 @@
       "when": 1746076276888,
       "tag": "0001_perfect_frank_castle",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1746079214396,
+      "tag": "0002_confused_anthem",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1746100144062,
+      "tag": "0003_famous_preak",
+      "breakpoints": true
     }
   ]
 }
