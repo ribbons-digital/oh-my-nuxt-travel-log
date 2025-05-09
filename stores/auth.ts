@@ -5,10 +5,16 @@ const authClient = createAuthClient();
 export const useAuthStore = defineStore("authStore",
 // modern way, which uses Vue's composition function (types are automatically inferred)
   () => {
-    const session = authClient.useSession();
+    const session = ref<Awaited<ReturnType<typeof authClient.useSession>> | null>(null);
 
-    const user = computed(() => session.value.data?.user);
-    const loading = computed(() => session.value.isPending || session.value.isRefetching);
+    // Need the init function because Pinia store cant be an async function
+    async function init() {
+      session.value = await authClient.useSession(useFetch);
+    }
+
+    const user = computed(() => session?.value?.data?.user);
+    const loading = computed(() => session?.value?.isPending);
+
     async function signIn() {
       await authClient.signIn.social({
         provider: "github",
@@ -23,6 +29,7 @@ export const useAuthStore = defineStore("authStore",
     }
 
     return {
+      init,
       loading,
       signIn,
       signOut,
