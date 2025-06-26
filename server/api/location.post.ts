@@ -1,5 +1,9 @@
-import db from "~/lib/db";
-import { InsertLocation, location } from "~/lib/db/schema";
+import type { DrizzleError } from "drizzle-orm";
+
+import slugify from "slug";
+
+import { findLocationByName, findUniqueSlug, insertLocation } from "~/lib/db/queries/location";
+import { InsertLocation } from "~/lib/db/schema";
 
 export default defineEventHandler(async (event) => {
   if (!event.context.user) {
@@ -29,11 +33,36 @@ export default defineEventHandler(async (event) => {
     }));
   }
 
-  const [createdLocation] = await db.insert(location).values({
-    ...result.data,
-    userId: event.context.user.id,
-    slug: result.data.name.toLowerCase().replace(/ /g, "-"),
-  }).returning();
+  const existingLocation = await findLocationByName(result.data, event.context.user.id);
+  if (existingLocation) {
+    return sendError(event, createError({
+      statusCode: 409,
+      statusMessage: "Location with this name already exists",
+    }));
+  }
 
-  return createdLocation;
+  const slug = await findUniqueSlug(slugify(result.data.name));
+
+  try {
+    if (!slug) {
+      return sendError(event, createError({
+        statusCode: 500,
+        statusMessage: "Failed to generate unique slug",
+      }));
+    }
+
+    return insertLocation(result.data, slug, event.context.user.id);
+  }
+  catch (error) {
+    const e = error as DrizzleError;
+
+    if (e.message === "SQLITE_CONSTRAINT: SQLite error: UNIQUE constraint failed: location.name, location.user_id") {
+      return sendError(event, createError({
+        statusCode: 409,
+        statusMessage: "Location with this name already exists",
+      }));
+    }
+
+    throw error;
+  }
 });
