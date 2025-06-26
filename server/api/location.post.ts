@@ -1,13 +1,9 @@
 import type { DrizzleError } from "drizzle-orm";
 
-import { and, eq } from "drizzle-orm";
-import { customAlphabet } from "nanoid";
 import slugify from "slug";
 
-import db from "~/lib/db";
-import { InsertLocation, location } from "~/lib/db/schema";
-
-const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 5);
+import { findLocationByName, findUniqueSlug, insertLocation } from "~/lib/db/queries/location";
+import { InsertLocation } from "~/lib/db/schema";
 
 export default defineEventHandler(async (event) => {
   if (!event.context.user) {
@@ -37,9 +33,7 @@ export default defineEventHandler(async (event) => {
     }));
   }
 
-  const existingLocation = await db.query.location.findFirst({
-    where: and(eq(location.name, result.data.name), eq(location.userId, event.context.user.id)),
-  });
+  const existingLocation = await findLocationByName(result.data, event.context.user.id);
   if (existingLocation) {
     return sendError(event, createError({
       statusCode: 409,
@@ -47,31 +41,17 @@ export default defineEventHandler(async (event) => {
     }));
   }
 
-  let slug = slugify(result.data.name);
-  let existing = !!(await db.query.location.findFirst({
-    where: eq(location.slug, slug),
-  }));
-
-  while (existing) {
-    const id = nanoid();
-    const newSlug = `${slug}-${id}`;
-    slug = newSlug;
-    existing = !!(await db.query.location.findFirst({
-      where: eq(location.slug, slug),
-    }));
-
-    if (!existing) {
-      slug = newSlug;
-    }
-  }
+  const slug = await findUniqueSlug(slugify(result.data.name));
 
   try {
-    const [createdLocation] = await db.insert(location).values({
-      ...result.data,
-      userId: event.context.user.id,
-      slug,
-    }).returning();
-    return createdLocation;
+    if (!slug) {
+      return sendError(event, createError({
+        statusCode: 500,
+        statusMessage: "Failed to generate unique slug",
+      }));
+    }
+
+    return insertLocation(result.data, slug, event.context.user.id);
   }
   catch (error) {
     const e = error as DrizzleError;
