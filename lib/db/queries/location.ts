@@ -6,6 +6,12 @@ import type { InsertLocation } from "../schema";
 import db from "..";
 import { location } from "../schema";
 
+export async function findLocations(userId: string) {
+  return db.query.location.findMany({
+    where: eq(location.userId, userId),
+  });
+}
+
 export async function findLocationByName(existing: InsertLocation, userId: string) {
   return db.query.location.findFirst({
     where: and(eq(location.name, existing.name), eq(location.userId, userId)),
