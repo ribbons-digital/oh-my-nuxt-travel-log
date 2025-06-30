@@ -1,6 +1,11 @@
 <script setup lang="ts">
-const { data: locations, status } = await useFetch("/api/locations", {
-  lazy: true,
+const locationStore = useLocationStore();
+// locationStore is Serializable so it loses reactivity if we destructure it directly.
+// We need to use storeToRefs to get the reactive properties.
+const { locations, status } = storeToRefs(locationStore);
+
+onMounted(() => {
+  locationStore.refresh();
 });
 </script>
 
